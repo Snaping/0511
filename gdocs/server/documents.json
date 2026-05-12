@@ -1,0 +1,30 @@
+{
+  "documents": [
+    {
+      "id": "a64fe18b-ab2a-4fa0-acb3-1bb255c7ced1",
+      "title": "Untitled Document",
+      "content": "[0,0]",
+      "createdAt": "2026-05-12T00:43:55.071Z",
+      "updatedAt": "2026-05-12T00:43:55.071Z"
+    }
+  ],
+  "comments": [],
+  "versions": [
+    {
+      "id": "0d6f9552-a08c-4d44-b1a7-bde409d9e425",
+      "documentId": "a64fe18b-ab2a-4fa0-acb3-1bb255c7ced1",
+      "snapshot": "[0,0]",
+      "author": "Charlie",
+      "description": "手动保存",
+      "timestamp": "2026-05-12T00:44:06.282Z"
+    },
+    {
+      "id": "9e4515a0-cbca-42fb-976b-28ad54c2e4dd",
+      "documentId": "a64fe18b-ab2a-4fa0-acb3-1bb255c7ced1",
+      "snapshot": "[0,0]",
+      "author": "Charlie",
+      "description": "手动保存",
+      "timestamp": "2026-05-12T00:50:43.022Z"
+    }
+  ]
+}

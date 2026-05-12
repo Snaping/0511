@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业级弹性 API 平台 v3.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            background: white;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        button.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        button.warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        button.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .status.authenticated {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.unauthenticated {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .method-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .method-get {
+            background: #61affe;
+            color: white;
+        }
+        .method-post {
+            background: #49cc90;
+            color: white;
+        }
+        .method-delete {
+            background: #f93e3e;
+            color: white;
+        }
+        .endpoint {
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+        }
+        .circuit-state {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .circuit-closed {
+            background: #d4edda;
+            color: #155724;
+        }
+        .circuit-open {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .circuit-half-open {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .server-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .server-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .server-name {
+            font-weight: bold;
+        }
+        .server-status {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        .server-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+        .server-unhealthy {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .col {
+            flex: 1;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .checkbox-label input {
+            width: auto;
+        }
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .api-key-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .api-key-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        .api-key-active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .api-key-revoked {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .api-key-inactive {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .log-entry {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+        .log-entry.error {
+            border-left-color: #f93e3e;
+        }
+        .log-entry.success {
+            border-left-color: #49cc90;
+        }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .tab {
+            padding: 8px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .auth-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .auth-tab {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .auth-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 企业级弹性 API 平台 v3.0</h1>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>🔐 认证中心</h2>
+                
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="switchAuthTab('jwt')">JWT Token</button>
+                    <button class="auth-tab" onclick="switchAuthTab('apikey')">API Key</button>
+                </div>
+                
+                <div id="jwt-auth-tab" class="tab-content active">
+                    <div id="auth-status" class="status unauthenticated">JWT 状态: 未登录</div>
+                    
+                    <div class="form-group">
+                        <label>用户名</label>
+                        <input type="text" id="username" value="admin" placeholder="admin 或 user">
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="password" value="password" placeholder="密码">
+                    </div>
+                    
+                    <button onclick="login()">登录获取Token</button>
+                    <button onclick="logout()">退出登录</button>
+                    
+                    <div id="token-result" class="result" style="display:none;"></div>
+                </div>
+                
+                <div id="apikey-auth-tab" class="tab-content">
+                    <div id="apikey-status" class="status unauthenticated">API Key 状态: 未设置</div>
+                    
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="text" id="api-key-input" value="sk_live_1234567890abcdef" placeholder="输入 API Key">
+                    </div>
+                    
+                    <button onclick="setApiKey()">设置 API Key</button>
+                    <button onclick="testApiKeyAuth()">测试 API Key</button>
+                    <button onclick="clearApiKey()">清除 API Key</button>
+                    
+                    <div id="apikey-result" class="result" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>⚡ 系统总览</h2>
+                <button onclick="loadDashboard()" class="success">刷新仪表盘</button>
+                
+                <div id="dashboard-stats" class="dashboard-stats" style="display:none;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-cb-total">0</div>
+                        <div class="stat-label">熔断器</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-cb-open">0</div>
+                        <div class="stat-label">熔断中</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lb-healthy">0</div>
+                        <div class="stat-label">健康服务器</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-api-keys">0</div>
+                        <div class="stat-label">API Key</div>
+                    </div>
+                </div>
+                
+                <div id="dashboard-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>🔑 API Key 管理</h2>
+                
+                <div class="form-group">
+                    <span class="method-tag method-post">POST</span>
+                    <span class="endpoint">/api-keys/</span>
+                </div>
+                
+                <div class="form-group">
+                    <label>Key 名称</label>
+                    <input type="text" id="new-key-name" value="我的 API Key" placeholder="Key 名称">
+                </div>
+                
+                <div class="form-group">
+                    <label>描述</label>
+                    <input type="text" id="new-key-desc" value="用于测试的 API Key" placeholder="描述">
+                </div>
+                
+                <div class="form-group">
+                    <label>过期天数 (空=永不过期)</label>
+                    <input type="number" id="new-key-expires" placeholder="如: 30">
+                </div>
+                
+                <div class="form-group">
+                    <label>权限</label>
+                    <select id="new-key-permissions" multiple>
+                        <option value="read" selected>read</option>
+                        <option value="write">write</option>
+                        <option value="admin">admin</option>
+                    </select>
+                </div>
+                
+                <button onclick="createApiKey()">创建 API Key</button>
+                <button onclick="listApiKeys()">获取列表</button>
+                
+                <div id="apikey-list"></div>
+                <div id="apikey-manage-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>📊 请求日志</h2>
+                
+                <div class="form-group">
+                    <span class="method-tag method-get">GET</span>
+                    <span class="endpoint">/logs/</span>
+                </div>
+                
+                <div class="row">
+                    <div class="col">
+                        <label>返回数量</label>
+                        <input type="number" id="logs-limit" value="20" min="1" max="100">
+                    </div>
+                    <div class="col">
+                        <label>偏移量</label>
+                        <input type="number" id="logs-offset" value="0" min="0">
+                    </div>
+                </div>
+                
+                <button onclick="getLogs()">获取日志</button>
+                <button onclick="getLogStats()">获取统计</button>
+                <button onclick="clearLogs()" class="danger">清除日志</button>
+                
+                <div id="logs-list"></div>
+                <div id="logs-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>🛡️ 熔断器测试</h2>
+                
+                <div class="form-group">
+                    <span class="method-tag method-post">POST</span>
+                    <span class="endpoint">/circuit-breaker/test/{service}</span>
+                </div>
+                
+                <div class="row">
+                    <div class="col">
+                        <label>服务名称</label>
+                        <input type="text" id="cb-service-name" value="payment-service" placeholder="服务名称">
+                    </div>
+                    <div class="col">
+                        <label>模拟延迟 (秒)</label>
+                        <input type="number" id="cb-delay" value="0" step="0.1" min="0" max="5">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="cb-should-fail">
+                        模拟服务失败
+                    </label>
+                </div>
+                
+                <button onclick="testCircuitBreaker()">调用服务</button>
+                <button onclick="triggerCircuitBreaker()" class="warning">🔥 触发熔断</button>
+                <button onclick="resetCircuitBreaker()" class="secondary">重置</button>
+                
+                <div id="cb-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>⚖️ 负载均衡测试</h2>
+                
+                <div class="form-group">
+                    <span class="method-tag method-post">POST</span>
+                    <span class="endpoint">/load-balancer/*</span>
+                </div>
+                
+                <div class="row">
+                    <div class="col">
+                        <label>策略</label>
+                        <select id="lb-strategy">
+                            <option value="round_robin">轮询</option>
+                            <option value="random">随机</option>
+                            <option value="least_connections">最少连接</option>
+                            <option value="weighted_round_robin">加权轮询</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button onclick="setLoadBalancerStrategy()">切换策略</button>
+                <button onclick="selectServer()">选择服务器</button>
+                <button onclick="testLoadBalancer()">批量测试(10次)</button>
+                <button onclick="resetLoadBalancerStats()" class="secondary">重置统计</button>
+                
+                <div id="lb-servers"></div>
+                <div id="lb-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>🔧 熔断器配置</h2>
+                
+                <div class="form-group">
+                    <label>目标服务</label>
+                    <input type="text" id="cb-config-service" value="payment-service">
+                </div>
+                
+                <div class="row">
+                    <div class="col">
+                        <label>失败阈值</label>
+                        <input type="number" id="cb-failure-threshold" value="5" min="1" max="100">
+                    </div>
+                    <div class="col">
+                        <label>恢复超时(秒)</label>
+                        <input type="number" id="cb-recovery-timeout" value="10" min="1" max="300">
+                    </div>
+                    <div class="col">
+                        <label>成功阈值</label>
+                        <input type="number" id="cb-success-threshold" value="3" min="1" max="10">
+                    </div>
+                </div>
+                
+                <button onclick="configureCircuitBreaker()">应用配置</button>
+                <button onclick="getAllCircuitBreakers()">查看所有</button>
+                
+                <div id="cb-config-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>🖥️ 服务器管理</h2>
+                
+                <div id="server-list"></div>
+                
+                <div class="row">
+                    <div class="col">
+                        <label>选择服务器</label>
+                        <select id="server-select">
+                            <option value="server-1">server-1 (Primary)</option>
+                            <option value="server-2">server-2 (Secondary)</option>
+                            <option value="server-3">server-3 (Tertiary)</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label>权重 (1-10)</label>
+                        <input type="number" id="server-weight" value="3" min="1" max="10">
+                    </div>
+                </div>
+                
+                <button onclick="toggleServerHealth()" class="warning">切换健康状态</button>
+                <button onclick="setServerWeight()">设置权重</button>
+                <button onclick="getLoadBalancerStatus()">刷新状态</button>
+                
+                <div id="server-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>📄 OpenAPI 文档</h2>
+                
+                <div class="form-group">
+                    <span class="method-tag method-get">GET</span>
+                    <span class="endpoint">/openapi.json</span>
+                </div>
+                
+                <p style="color:#666;margin-bottom:15px;">企业级 OpenAPI 3.0 规范文档，支持多种认证方式</p>
+                
+                <button onclick="window.open('/docs', '_blank')" class="success">📖 Swagger UI</button>
+                <button onclick="window.open('/redoc', '_blank')" class="success">📚 ReDoc</button>
+                <button onclick="exportOpenAPI('json')">导出 JSON</button>
+                <button onclick="viewOpenAPI()">查看规范</button>
+                
+                <div id="openapi-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>🌐 公开接口</h2>
+                
+                <div class="form-group">
+                    <span class="method-tag method-get">GET</span>
+                    <span class="endpoint">/health</span>
+                </div>
+                <button onclick="testHealth()">测试健康检查</button>
+                
+                <div class="form-group" style="margin-top:20px;">
+                    <span class="method-tag method-get">GET</span>
+                    <span class="endpoint">/public/items/</span>
+                </div>
+                <button onclick="testPublicItems()">获取公开商品</button>
+                
+                <div id="public-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>🔒 受保护接口</h2>
+                
+                <div class="form-group">
+                    <span class="method-tag method-get">GET</span>
+                    <span class="endpoint">/users/me/</span>
+                </div>
+                <button onclick="testUserInfo()">获取用户信息</button>
+                
+                <div class="form-group" style="margin-top:20px;">
+                    <span class="method-tag method-get">GET</span>
+                    <span class="endpoint">/users/me/items/</span>
+                </div>
+                <button onclick="testUserItems()">获取用户商品</button>
+                
+                <div id="protected-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>📝 API Key 操作</h2>
+                
+                <div class="form-group">
+                    <label>选择 Key ID</label>
+                    <input type="text" id="key-action-id" placeholder="输入 Key ID">
+                </div>
+                
+                <button onclick="getApiKeyDetails()">查看详情</button>
+                <button onclick="revokeApiKey()" class="warning">撤销 Key</button>
+                <button onclick="activateApiKey()" class="success">激活 Key</button>
+                <button onclick="deleteApiKey()" class="danger">删除 Key</button>
+                
+                <div id="key-action-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>🛤️ 动态路由管理</h2>
+                
+                <div class="form-group">
+                    <label>路由路径</label>
+                    <input type="text" id="route-path" placeholder="例如: hello 或 /dynamic/hello">
+                </div>
+                
+                <div class="form-group">
+                    <label>路由名称</label>
+                    <input type="text" id="route-name" placeholder="例如: My Custom Route">
+                </div>
+                
+                <div class="form-group">
+                    <label>HTTP 方法</label>
+                    <select id="route-method">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>路由类型</label>
+                    <select id="route-type" onchange="onRouteTypeChange()">
+                        <option value="json">JSON 响应</option>
+                        <option value="html">HTML 响应</option>
+                        <option value="redirect">重定向</option>
+                        <option value="echo">Echo 服务</option>
+                        <option value="static">静态响应</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="route-response-group">
+                    <label>JSON 响应数据</label>
+                    <textarea id="route-response-data" rows="3" placeholder='{"message": "Hello", "status": "ok"}'></textarea>
+                </div>
+                
+                <div class="form-group" id="route-redirect-group" style="display:none;">
+                    <label>重定向 URL</label>
+                    <input type="text" id="route-redirect-url" placeholder="https://example.com">
+                </div>
+                
+                <div class="form-group" id="route-html-group" style="display:none;">
+                    <label>HTML 内容</label>
+                    <textarea id="route-html-content" rows="3" placeholder="<h1>Hello</h1>"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>响应延迟 (毫秒)</label>
+                    <input type="number" id="route-delay" value="0" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="route-require-auth"> 需要认证
+                    </label>
+                </div>
+                
+                <button onclick="createDynamicRoute()">创建路由</button>
+                <button onclick="listDynamicRoutes()">列出路由</button>
+                <button onclick="getDynamicRouteStats()">查看统计</button>
+                
+                <div id="dynamic-routes-result" class="result" style="display:none;"></div>
+            </div>
+
+            <div class="card">
+                <h2>🧪 动态路由测试</h2>
+                
+                <div class="form-group">
+                    <label>选择路由 ID</label>
+                    <select id="test-route-id" onchange="onSelectedRouteChange()">
+                        <option value="">先列出路由...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>测试路径</label>
+                    <input type="text" id="test-route-path" placeholder="/dynamic/hello" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>测试方法</label>
+                    <select id="test-route-method">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="test-body-group" style="display:none;">
+                    <label>请求体 (JSON)</label>
+                    <textarea id="test-route-body" rows="2" placeholder='{"key": "value"}'></textarea>
+                </div>
+                
+                <button onclick="testDynamicRoute()">测试路由</button>
+                <button onclick="toggleSelectedRoute(true)" class="success">启用</button>
+                <button onclick="toggleSelectedRoute(false)" class="warning">禁用</button>
+                <button onclick="deleteSelectedRoute()" class="danger">删除</button>
+                
+                <div id="dynamic-route-test-result" class="result" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = null;
+        let apiKey = null;
+        let currentAuthMode = 'jwt';
+
+        function switchAuthTab(mode) {
+            currentAuthMode = mode;
+            document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`.auth-tab[onclick="switchAuthTab('${mode}')"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(`${mode}-auth-tab`).classList.add('active');
+        }
+
+        function updateAuthStatus() {
+            const statusEl = document.getElementById('auth-status');
+            if (token) {
+                statusEl.textContent = 'JWT 状态: 已登录';
+                statusEl.className = 'status authenticated';
+            } else {
+                statusEl.textContent = 'JWT 状态: 未登录';
+                statusEl.className = 'status unauthenticated';
+            }
+        }
+
+        function updateApiKeyStatus() {
+            const statusEl = document.getElementById('apikey-status');
+            if (apiKey) {
+                statusEl.textContent = `API Key 状态: 已设置 (${apiKey.substring(0, 10)}...)`;
+                statusEl.className = 'status authenticated';
+            } else {
+                statusEl.textContent = 'API Key 状态: 未设置';
+                statusEl.className = 'status unauthenticated';
+            }
+        }
+
+        function getAuthHeaders() {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (currentAuthMode === 'jwt' && token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            } else if (currentAuthMode === 'apikey' && apiKey) {
+                headers['X-API-Key'] = apiKey;
+            }
+            
+            return headers;
+        }
+
+        function hasAuth() {
+            return (currentAuthMode === 'jwt' && token) || (currentAuthMode === 'apikey' && apiKey);
+        }
+
+        function showResult(elementId, data, isSuccess = true) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = 'result ' + (isSuccess ? 'success' : 'error');
+            el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+        }
+
+        async function apiCall(url, method = 'GET', body = null, authRequired = true) {
+            const headers = getAuthHeaders();
+            
+            if (authRequired && !hasAuth()) {
+                return {
+                    ok: false,
+                    status: 401,
+                    data: { detail: `请先使用 ${currentAuthMode === 'jwt' ? 'JWT Token' : 'API Key'} 进行认证` }
+                };
+            }
+
+            const options = { method, headers };
+            if (body) options.body = JSON.stringify(body);
+
+            const response = await fetch(url, options);
+            const data = await response.json().catch(() => ({ message: response.statusText }));
+            
+            return { ok: response.ok, status: response.status, data };
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const formData = new URLSearchParams();
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            try {
+                const response = await fetch('/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.access_token;
+                    updateAuthStatus();
+                    showResult('token-result', {
+                        message: '登录成功！',
+                        token_preview: token.substring(0, 50) + '...',
+                        expires_in: '30分钟'
+                    }, true);
+                } else {
+                    showResult('token-result', data, false);
+                }
+            } catch (error) {
+                showResult('token-result', { error: error.message }, false);
+            }
+        }
+
+        function logout() {
+            token = null;
+            updateAuthStatus();
+            showResult('token-result', '已退出登录', true);
+        }
+
+        function setApiKey() {
+            apiKey = document.getElementById('api-key-input').value.trim();
+            updateApiKeyStatus();
+            showResult('apikey-result', {
+                message: 'API Key 已设置',
+                key_preview: apiKey.substring(0, 10) + '...'
+            }, true);
+        }
+
+        async function testApiKeyAuth() {
+            if (!apiKey) {
+                showResult('apikey-result', { error: '请先设置 API Key' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/api-keys/verify/test', 'GET', null, false);
+            showResult('apikey-result', result.data, result.ok);
+        }
+
+        function clearApiKey() {
+            apiKey = null;
+            updateApiKeyStatus();
+            showResult('apikey-result', 'API Key 已清除', true);
+        }
+
+        async function testHealth() {
+            const result = await apiCall('/health', 'GET', null, false);
+            showResult('public-result', result.data, result.ok);
+        }
+
+        async function testPublicItems() {
+            const result = await apiCall('/public/items/', 'GET', null, false);
+            showResult('public-result', result.data, result.ok);
+        }
+
+        async function testUserInfo() {
+            const result = await apiCall('/users/me/');
+            showResult('protected-result', result.data, result.ok);
+        }
+
+        async function testUserItems() {
+            const result = await apiCall('/users/me/items/');
+            showResult('protected-result', result.data, result.ok);
+        }
+
+        async function loadDashboard() {
+            if (!hasAuth()) {
+                showResult('dashboard-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/resilience/dashboard/');
+            
+            if (result.ok) {
+                document.getElementById('dashboard-stats').style.display = 'grid';
+                document.getElementById('stat-cb-total').textContent = result.data.circuit_breakers.total;
+                document.getElementById('stat-cb-open').textContent = result.data.circuit_breakers.open;
+                document.getElementById('stat-lb-healthy').textContent = result.data.load_balancer.healthy_servers;
+                document.getElementById('stat-api-keys').textContent = result.data.api_keys.total;
+                showResult('dashboard-result', result.data, true);
+            } else {
+                showResult('dashboard-result', result.data, false);
+            }
+        }
+
+        async function testCircuitBreaker() {
+            if (!hasAuth()) {
+                showResult('cb-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const serviceName = document.getElementById('cb-service-name').value;
+            const shouldFail = document.getElementById('cb-should-fail').checked;
+            const delay = parseFloat(document.getElementById('cb-delay').value);
+            
+            const result = await apiCall(
+                `/circuit-breaker/test/${serviceName}?should_fail=${shouldFail}&delay=${delay}`,
+                'POST'
+            );
+            
+            showResult('cb-result', result.data, result.ok);
+        }
+
+        async function triggerCircuitBreaker() {
+            if (!hasAuth()) {
+                showResult('cb-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const serviceName = document.getElementById('cb-service-name').value;
+            showResult('cb-result', '正在触发熔断（连续发送6次失败请求）...', true);
+            
+            const results = [];
+            for (let i = 0; i < 6; i++) {
+                const result = await apiCall(
+                    `/circuit-breaker/test/${serviceName}?should_fail=true`,
+                    'POST'
+                );
+                results.push({
+                    request: i + 1,
+                    status: result.status,
+                    data: result.data
+                });
+            }
+            
+            showResult('cb-result', {
+                message: '熔断触发测试完成',
+                results: results
+            }, true);
+        }
+
+        async function resetCircuitBreaker() {
+            if (!hasAuth()) {
+                showResult('cb-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const serviceName = document.getElementById('cb-service-name').value;
+            const result = await apiCall(`/circuit-breaker/reset/${serviceName}`, 'POST');
+            showResult('cb-result', result.data, result.ok);
+        }
+
+        async function configureCircuitBreaker() {
+            if (!hasAuth()) {
+                showResult('cb-config-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const serviceName = document.getElementById('cb-config-service').value;
+            const failureThreshold = document.getElementById('cb-failure-threshold').value;
+            const recoveryTimeout = document.getElementById('cb-recovery-timeout').value;
+            const successThreshold = document.getElementById('cb-success-threshold').value;
+            
+            const result = await apiCall(
+                `/circuit-breaker/config/${serviceName}?failure_threshold=${failureThreshold}&recovery_timeout=${recoveryTimeout}&success_threshold=${successThreshold}`,
+                'POST'
+            );
+            
+            showResult('cb-config-result', result.data, result.ok);
+        }
+
+        async function getAllCircuitBreakers() {
+            if (!hasAuth()) {
+                showResult('cb-config-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/circuit-breaker/status/');
+            showResult('cb-config-result', result.data, result.ok);
+        }
+
+        async function setLoadBalancerStrategy() {
+            if (!hasAuth()) {
+                showResult('lb-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const strategy = document.getElementById('lb-strategy').value;
+            const result = await apiCall(`/load-balancer/strategy/${strategy}`, 'POST');
+            
+            showResult('lb-result', result.data, result.ok);
+            if (result.ok) {
+                renderServers(result.data.load_balancer.servers);
+            }
+        }
+
+        async function selectServer() {
+            if (!hasAuth()) {
+                showResult('lb-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/load-balancer/select/', 'POST');
+            showResult('lb-result', result.data, result.ok);
+            
+            if (result.ok) {
+                await getLoadBalancerStatus();
+            }
+        }
+
+        async function testLoadBalancer() {
+            if (!hasAuth()) {
+                showResult('lb-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            showResult('lb-result', '正在执行负载均衡测试（10次请求）...', true);
+            
+            const result = await apiCall('/load-balancer/test/?requests_count=10', 'POST');
+            showResult('lb-result', result.data, result.ok);
+            
+            if (result.ok) {
+                renderServers(result.data.load_balancer.servers);
+            }
+        }
+
+        async function resetLoadBalancerStats() {
+            if (!hasAuth()) {
+                showResult('lb-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/load-balancer/reset/', 'POST');
+            showResult('lb-result', result.data, result.ok);
+            
+            if (result.ok) {
+                renderServers(result.data.load_balancer.servers);
+            }
+        }
+
+        async function getLoadBalancerStatus() {
+            if (!hasAuth()) {
+                showResult('server-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/load-balancer/status/');
+            
+            if (result.ok) {
+                renderServers(result.data.servers);
+                showResult('server-result', result.data, true);
+            } else {
+                showResult('server-result', result.data, false);
+            }
+        }
+
+        async function toggleServerHealth() {
+            if (!hasAuth()) {
+                showResult('server-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const serverId = document.getElementById('server-select').value;
+            const result = await apiCall(`/load-balancer/server/${serverId}/toggle`, 'POST');
+            
+            showResult('server-result', result.data, result.ok);
+            
+            if (result.ok) {
+                renderServers(result.data.load_balancer.servers);
+            }
+        }
+
+        async function setServerWeight() {
+            if (!hasAuth()) {
+                showResult('server-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const serverId = document.getElementById('server-select').value;
+            const weight = document.getElementById('server-weight').value;
+            
+            const result = await apiCall(`/load-balancer/server/${serverId}/weight?weight=${weight}`, 'POST');
+            
+            showResult('server-result', result.data, result.ok);
+            
+            if (result.ok) {
+                renderServers(result.data.load_balancer.servers);
+            }
+        }
+
+        function renderServers(servers) {
+            const serverListEl = document.getElementById('server-list');
+            const lbServersEl = document.getElementById('lb-servers');
+            
+            if (!servers || servers.length === 0) {
+                serverListEl.innerHTML = '<p style="color:#666;">暂无服务器数据</p>';
+                return;
+            }
+            
+            let html = '';
+            servers.forEach(server => {
+                const statusClass = server.is_healthy ? 'server-healthy' : 'server-unhealthy';
+                const statusText = server.is_healthy ? '健康' : '故障';
+                html += `
+                    <div class="server-card">
+                        <div class="server-header">
+                            <span class="server-name">${server.id} (${server.name})</span>
+                            <span class="server-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <small>权重: ${server.weight} | 连接: ${server.active_connections} | 请求: ${server.total_requests} | 失败: ${server.total_failures}</small>
+                    </div>
+                `;
+            });
+            
+            serverListEl.innerHTML = html;
+            lbServersEl.innerHTML = html;
+        }
+
+        async function createApiKey() {
+            if (!token) {
+                showResult('apikey-manage-result', { error: '创建 API Key 需要 JWT 认证，请先登录' }, false);
+                return;
+            }
+            
+            const name = document.getElementById('new-key-name').value;
+            const description = document.getElementById('new-key-desc').value;
+            const expiresDays = document.getElementById('new-key-expires').value;
+            const permissionsSelect = document.getElementById('new-key-permissions');
+            const permissions = Array.from(permissionsSelect.selectedOptions).map(o => o.value);
+            
+            const body = {
+                name,
+                description,
+                permissions,
+                expires_days: expiresDays ? parseInt(expiresDays) : null
+            };
+            
+            const result = await apiCall('/api-keys/', 'POST', body, true);
+            showResult('apikey-manage-result', result.data, result.ok);
+            
+            if (result.ok) {
+                await listApiKeys();
+            }
+        }
+
+        async function listApiKeys() {
+            if (!token) {
+                showResult('apikey-manage-result', { error: '查看 API Key 列表需要 JWT 认证，请先登录' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/api-keys/');
+            
+            if (result.ok) {
+                renderApiKeys(result.data.api_keys);
+            }
+            
+            showResult('apikey-manage-result', result.data, result.ok);
+        }
+
+        function renderApiKeys(keys) {
+            const container = document.getElementById('apikey-list');
+            
+            if (!keys || keys.length === 0) {
+                container.innerHTML = '<p style="color:#666;">暂无 API Key</p>';
+                return;
+            }
+            
+            let html = '';
+            keys.forEach(key => {
+                const statusClass = `api-key-${key.status}`;
+                html += `
+                    <div class="api-key-card">
+                        <div>
+                            <strong>${key.name}</strong>
+                            <span class="api-key-status ${statusClass}">${key.status}</span>
+                        </div>
+                        <small>ID: ${key.id}</small><br>
+                        <small>权限: ${key.permissions.join(', ')}</small><br>
+                        <small>使用次数: ${key.usage_count} | 创建: ${new Date(key.created_at).toLocaleString()}</small>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function getApiKeyDetails() {
+            if (!token) {
+                showResult('key-action-result', { error: '需要 JWT 认证' }, false);
+                return;
+            }
+            
+            const keyId = document.getElementById('key-action-id').value;
+            if (!keyId) {
+                showResult('key-action-result', { error: '请输入 Key ID' }, false);
+                return;
+            }
+            
+            const result = await apiCall(`/api-keys/${keyId}`);
+            showResult('key-action-result', result.data, result.ok);
+        }
+
+        async function revokeApiKey() {
+            if (!token) {
+                showResult('key-action-result', { error: '需要 JWT 认证' }, false);
+                return;
+            }
+            
+            const keyId = document.getElementById('key-action-id').value;
+            if (!keyId) {
+                showResult('key-action-result', { error: '请输入 Key ID' }, false);
+                return;
+            }
+            
+            const result = await apiCall(`/api-keys/${keyId}/revoke`, 'POST');
+            showResult('key-action-result', result.data, result.ok);
+        }
+
+        async function activateApiKey() {
+            if (!token) {
+                showResult('key-action-result', { error: '需要 JWT 认证' }, false);
+                return;
+            }
+            
+            const keyId = document.getElementById('key-action-id').value;
+            if (!keyId) {
+                showResult('key-action-result', { error: '请输入 Key ID' }, false);
+                return;
+            }
+            
+            const result = await apiCall(`/api-keys/${keyId}/activate`, 'POST');
+            showResult('key-action-result', result.data, result.ok);
+        }
+
+        async function deleteApiKey() {
+            if (!token) {
+                showResult('key-action-result', { error: '需要 JWT 认证' }, false);
+                return;
+            }
+            
+            const keyId = document.getElementById('key-action-id').value;
+            if (!keyId) {
+                showResult('key-action-result', { error: '请输入 Key ID' }, false);
+                return;
+            }
+            
+            if (!confirm(`确定要删除 API Key ${keyId} 吗？此操作不可撤销。`)) {
+                return;
+            }
+            
+            const result = await apiCall(`/api-keys/${keyId}`, 'DELETE');
+            showResult('key-action-result', result.data, result.ok);
+        }
+
+        async function getLogs() {
+            if (!hasAuth()) {
+                showResult('logs-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const limit = document.getElementById('logs-limit').value;
+            const offset = document.getElementById('logs-offset').value;
+            
+            const result = await apiCall(`/logs/?limit=${limit}&offset=${offset}`);
+            
+            if (result.ok) {
+                renderLogs(result.data.logs);
+            }
+            
+            showResult('logs-result', result.data, result.ok);
+        }
+
+        async function getLogStats() {
+            if (!hasAuth()) {
+                showResult('logs-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/logs/stats/');
+            showResult('logs-result', result.data, result.ok);
+        }
+
+        async function clearLogs() {
+            if (!token) {
+                showResult('logs-result', { error: '清除日志需要 JWT 认证' }, false);
+                return;
+            }
+            
+            if (!confirm('确定要清除所有请求日志吗？')) {
+                return;
+            }
+            
+            const result = await apiCall('/logs/clear/', 'POST');
+            showResult('logs-result', result.data, result.ok);
+        }
+
+        function renderLogs(logs) {
+            const container = document.getElementById('logs-list');
+            
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<p style="color:#666;">暂无日志数据</p>';
+                return;
+            }
+            
+            let html = '';
+            logs.slice(0, 10).forEach(log => {
+                const statusClass = log.status_code >= 400 ? 'error' : 'success';
+                html += `
+                    <div class="log-entry ${statusClass}">
+                        <div>[${log.timestamp}] ${log.method} ${log.path}</div>
+                        <div>状态: ${log.status_code} | 耗时: ${log.response_time_ms}ms</div>
+                        <div>IP: ${log.ip} | 认证: ${log.auth_type || 'none'}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function exportOpenAPI(format) {
+            if (!hasAuth()) {
+                showResult('openapi-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const result = await apiCall(`/openapi-export/?format=${format}`);
+            showResult('openapi-result', result.data, result.ok);
+        }
+
+        async function viewOpenAPI() {
+            if (!hasAuth()) {
+                showResult('openapi-result', { error: '请先进行认证' }, false);
+                return;
+            }
+            
+            const result = await apiCall('/openapi-export/');
+            showResult('openapi-result', result.data, result.ok);
+        }
+
+        function onRouteTypeChange() {
+            const type = document.getElementById('route-type').value;
+            document.getElementById('route-response-group').style.display = (type === 'json') ? 'block' : 'none';
+            document.getElementById('route-redirect-group').style.display = (type === 'redirect') ? 'block' : 'none';
+            document.getElementById('route-html-group').style.display = (type === 'html') ? 'block' : 'none';
+        }
+
+        function onSelectedRouteChange() {
+            const routeId = document.getElementById('test-route-id').value;
+            const testBodyGroup = document.getElementById('test-body-group');
+            const methodSelect = document.getElementById('test-route-method');
+            
+            if (!routeId) {
+                document.getElementById('test-route-path').value = '';
+                testBodyGroup.style.display = 'none';
+                return;
+            }
+            
+            const selectedOption = document.querySelector(`#test-route-id option[value="${routeId}"]`);
+            if (selectedOption) {
+                const path = selectedOption.getAttribute('data-path');
+                const method = selectedOption.getAttribute('data-method');
+                
+                document.getElementById('test-route-path').value = path;
+                methodSelect.value = method;
+                
+                testBodyGroup.style.display = (method === 'POST' || method === 'PUT' || method === 'PATCH') ? 'block' : 'none';
+            }
+        }
+
+        async function createDynamicRoute() {
+            if (!hasAuth()) {
+                showResult('dynamic-routes-result', { error: '请先进行认证' }, false);
+                return;
+            }
+
+            const path = document.getElementById('route-path').value;
+            const name = document.getElementById('route-name').value;
+            const method = document.getElementById('route-method').value;
+            const routeType = document.getElementById('route-type').value;
+            const delay = parseInt(document.getElementById('route-delay').value) || 0;
+            const requireAuth = document.getElementById('route-require-auth').checked;
+
+            if (!path || !name) {
+                showResult('dynamic-routes-result', { error: '请填写路径和名称' }, false);
+                return;
+            }
+
+            const requestData = {
+                path,
+                name,
+                method,
+                route_type: routeType,
+                delay_ms: delay,
+                require_auth: requireAuth
+            };
+
+            if (routeType === 'json') {
+                const responseData = document.getElementById('route-response-data').value;
+                if (responseData) {
+                    try {
+                        requestData.response_data = JSON.parse(responseData);
+                    } catch (e) {
+                        requestData.response_data = { message: responseData };
+                    }
+                }
+            } else if (routeType === 'redirect') {
+                requestData.redirect_url = document.getElementById('route-redirect-url').value;
+            } else if (routeType === 'html') {
+                requestData.html_content = document.getElementById('route-html-content').value;
+            }
+
+            const result = await apiCall('/dynamic-routes/', 'POST', requestData);
+            showResult('dynamic-routes-result', result.data, result.ok);
+
+            if (result.ok) {
+                listDynamicRoutes();
+            }
+        }
+
+        let cachedRoutes = [];
+
+        async function listDynamicRoutes() {
+            if (!hasAuth()) {
+                showResult('dynamic-routes-result', { error: '请先进行认证' }, false);
+                return;
+            }
+
+            const result = await apiCall('/dynamic-routes/');
+            
+            if (result.ok && result.data) {
+                cachedRoutes = result.data.routes || [];
+                
+                const routeSelect = document.getElementById('test-route-id');
+                routeSelect.innerHTML = '<option value="">先列出路由...</option>';
+                
+                cachedRoutes.forEach(route => {
+                    const option = document.createElement('option');
+                    option.value = route.id;
+                    option.text = `${route.method} ${route.path} - ${route.name}`;
+                    option.setAttribute('data-path', route.path);
+                    option.setAttribute('data-method', route.method);
+                    routeSelect.appendChild(option);
+                });
+                
+                showResult('dynamic-routes-result', {
+                    message: `共 ${result.data.total} 个路由`,
+                    routes: cachedRoutes.map(r => ({
+                        id: r.id,
+                        method: r.method,
+                        path: r.path,
+                        type: r.route_type,
+                        active: r.is_active,
+                        usage: r.usage_count
+                    }))
+                }, true);
+            } else {
+                showResult('dynamic-routes-result', result.data, false);
+            }
+        }
+
+        async function getDynamicRouteStats() {
+            if (!hasAuth()) {
+                showResult('dynamic-routes-result', { error: '请先进行认证' }, false);
+                return;
+            }
+
+            const result = await apiCall('/dynamic-routes/stats/overview');
+            showResult('dynamic-routes-result', result.data, result.ok);
+        }
+
+        async function testDynamicRoute() {
+            const path = document.getElementById('test-route-path').value;
+            const method = document.getElementById('test-route-method').value;
+            
+            if (!path) {
+                showResult('dynamic-route-test-result', { error: '请先选择或列出路由' }, false);
+                return;
+            }
+
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                
+                if (currentAuthMode === 'jwt' && token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                } else if (currentAuthMode === 'apikey' && apiKey) {
+                    headers['X-API-Key'] = apiKey;
+                }
+
+                const options = { method, headers };
+                
+                if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+                    const bodyText = document.getElementById('test-route-body').value;
+                    if (bodyText) {
+                        try {
+                            options.body = JSON.stringify(JSON.parse(bodyText));
+                        } catch (e) {
+                            options.body = bodyText;
+                        }
+                    }
+                }
+
+                const startTime = Date.now();
+                const response = await fetch(path, options);
+                const elapsed = Date.now() - startTime;
+                
+                let data;
+                const contentType = response.headers.get('content-type') || '';
+                
+                if (contentType.includes('application/json')) {
+                    data = await response.json().catch(() => response.text());
+                } else if (contentType.includes('text/html')) {
+                    data = { content_type: 'html', preview: await response.text().then(t => t.substring(0, 500) + '...') };
+                } else {
+                    data = await response.text();
+                }
+
+                showResult('dynamic-route-test-result', {
+                    status: response.status,
+                    status_text: response.statusText,
+                    elapsed_ms: elapsed,
+                    content_type: contentType,
+                    response: data
+                }, response.ok);
+            } catch (e) {
+                showResult('dynamic-route-test-result', { error: e.message }, false);
+            }
+        }
+
+        async function toggleSelectedRoute(isActive) {
+            const routeId = document.getElementById('test-route-id').value;
+            
+            if (!routeId) {
+                showResult('dynamic-route-test-result', { error: '请先选择路由' }, false);
+                return;
+            }
+
+            const result = await apiCall(`/dynamic-routes/${routeId}/toggle?is_active=${isActive}`, 'POST');
+            showResult('dynamic-route-test-result', result.data, result.ok);
+            
+            if (result.ok) {
+                listDynamicRoutes();
+            }
+        }
+
+        async function deleteSelectedRoute() {
+            const routeId = document.getElementById('test-route-id').value;
+            
+            if (!routeId) {
+                showResult('dynamic-route-test-result', { error: '请先选择路由' }, false);
+                return;
+            }
+
+            if (!confirm('确定要删除这个动态路由吗？')) {
+                return;
+            }
+
+            const result = await apiCall(`/dynamic-routes/${routeId}`, 'DELETE');
+            showResult('dynamic-route-test-result', result.data, result.ok);
+            
+            if (result.ok) {
+                document.getElementById('test-route-id').value = '';
+                document.getElementById('test-route-path').value = '';
+                listDynamicRoutes();
+            }
+        }
+
+        updateAuthStatus();
+        updateApiKeyStatus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+// Copyright 2018-2026 the Deno authors. MIT license.
+
+// NOTE(bartlomieju): unfortunately it appears that clippy is broken
+// and can't allow a single line ignore for `await_holding_lock`.
+#![allow(clippy::await_holding_lock, reason = "clippy bug")]
+
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
+
+use deno_core::OpState;
+use deno_core::error::AnyError;
+use deno_core::op2;
+use deno_core::parking_lot::Mutex;
+use deno_core::serde_json;
+use deno_error::JsErrorBox;
+use jupyter_protocol::InputRequest;
+use jupyter_protocol::JupyterMessage;
+use jupyter_protocol::JupyterMessageContent;
+use jupyter_protocol::StreamContent;
+use jupyter_runtime::KernelIoPubConnection;
+use tokio::sync::mpsc;
+
+use crate::tools::jupyter::server::StdinConnectionProxy;
+
+deno_core::extension!(deno_jupyter,
+  ops = [
+    op_jupyter_broadcast,
+    op_jupyter_input,
+    op_jupyter_create_png_from_texture,
+    op_jupyter_get_buffer,
+  ],
+  options = {
+    sender: mpsc::UnboundedSender<StreamContent>,
+  },
+  middleware = |op| match op.name {
+    "op_print" => op_print(),
+    _ => op,
+  },
+  state = |state, options| {
+    state.put(options.sender);
+  },
+);
+
+deno_core::extension!(deno_jupyter_for_test,
+  ops = [
+    op_jupyter_broadcast,
+    op_jupyter_input,
+    op_jupyter_create_png_from_texture,
+    op_jupyter_get_buffer,
+  ],
+  options = {
+    sender: mpsc::UnboundedSender<StreamContent>,
+  },
+  state = |state, options| {
+    state.put(options.sender);
+  },
+);
+
+#[op2]
+#[string]
+pub fn op_jupyter_input(
+  state: &mut OpState,
+  #[string] prompt: String,
+  is_password: bool,
+) -> Option<String> {
+  let (last_execution_request, stdin_connection_proxy) = {
+    (
+      state.borrow::<Arc<Mutex<Option<JupyterMessage>>>>().clone(),
+      state.borrow::<Arc<Mutex<StdinConnectionProxy>>>().clone(),
+    )
+  };
+
+  let maybe_last_request = last_execution_request.lock().clone();
+  if let Some(last_request) = maybe_last_request {
+    let JupyterMessageContent::ExecuteRequest(msg) = &last_request.content
+    else {
+      return None;
+    };
+
+    if !msg.allow_stdin {
+      return None;
+    }
+
+    let content = InputRequest {
+      prompt,
+      password: is_password,
+    };
+
+    let msg = JupyterMessage::new(content, Some(&last_request));
+
+    let Ok(()) = stdin_connection_proxy.lock().tx.send(msg) else {
+      return None;
+    };
+
+    // Need to spawn a separate thread here, because `blocking_recv()` can't
+    // be used from the Tokio runtime context.
+    let join_handle = std::thread::spawn(move || {
+      stdin_connection_proxy.lock().rx.blocking_recv()
+    });
+    let Ok(Some(response)) = join_handle.join() else {
+      return None;
+    };
+
+    let JupyterMessageContent::InputReply(msg) = response.content else {
+      return None;
+    };
+
+    return Some(msg.value);
+  }
+
+  None
+}
+
+#[derive(Debug, thiserror::Error, deno_error::JsError)]
+pub enum JupyterBroadcastError {
+  #[class(inherit)]
+  #[error(transparent)]
+  SerdeJson(serde_json::Error),
+  #[class(generic)]
+  #[error(transparent)]
+  ZeroMq(AnyError),
+}
+
+#[op2]
+pub async fn op_jupyter_broadcast(
+  state: Rc<RefCell<OpState>>,
+  #[string] message_type: String,
+  #[serde] content: serde_json::Value,
+  #[serde] metadata: serde_json::Value,
+  #[serde] buffers: Vec<deno_core::JsBuffer>,
+) -> Result<(), JupyterBroadcastError> {
+  let (iopub_connection, last_execution_request) = {
+    let s = state.borrow();
+
+    (
+      s.borrow::<Arc<Mutex<KernelIoPubConnection>>>().clone(),
+      s.borrow::<Arc<Mutex<Option<JupyterMessage>>>>().clone(),
+    )
+  };
+
+  let maybe_last_request = last_execution_request.lock().clone();
+  if let Some(last_request) = maybe_last_request {
+    let content = JupyterMessageContent::from_type_and_content(
+      &message_type,
+      content.clone(),
+    )
+    .map_err(|err| {
+      log::error!(
+          "Error deserializing content from jupyter.broadcast, message_type: {}:\n\n{}\n\n{}",
+          &message_type,
+          content,
+          err
+      );
+      JupyterBroadcastError::SerdeJson(err)
+    })?;
+
+    let jupyter_message = JupyterMessage::new(content, Some(&last_request))
+      .with_metadata(metadata)
+      .with_buffers(buffers.into_iter().map(|b| b.to_vec().into()).collect());
+
+    iopub_connection
+      .lock()
+      .send(jupyter_message)
+      .await
+      .map_err(|e| JupyterBroadcastError::ZeroMq(e.into()))?;
+  }
+
+  Ok(())
+}
+
+#[op2(fast)]
+pub fn op_print(state: &mut OpState, #[string] msg: &str, is_err: bool) {
+  let sender = state.borrow_mut::<mpsc::UnboundedSender<StreamContent>>();
+
+  if is_err {
+    if let Err(err) = sender.send(StreamContent::stderr(msg)) {
+      log::error!("Failed to send stderr message: {}", err);
+    }
+    return;
+  }
+
+  if let Err(err) = sender.send(StreamContent::stdout(msg)) {
+    log::error!("Failed to send stdout message: {}", err);
+  }
+}
+
+#[op2]
+#[string]
+pub fn op_jupyter_create_png_from_texture(
+  #[cppgc] texture: &deno_runtime::deno_webgpu::texture::GPUTexture,
+) -> Result<String, JsErrorBox> {
+  use deno_runtime::deno_image::image::ExtendedColorType;
+  use deno_runtime::deno_image::image::ImageEncoder;
+  use deno_runtime::deno_webgpu::error::GPUError;
+  use deno_runtime::deno_webgpu::*;
+  use texture::GPUTextureFormat;
+
+  let (command_encoder, maybe_err) =
+    texture.instance.device_create_command_encoder(
+      texture.device_id,
+      &wgpu_types::CommandEncoderDescriptor { label: None },
+      None,
+    );
+  if let Some(maybe_err) = maybe_err {
+    return Err(JsErrorBox::from_err::<GPUError>(maybe_err.into()));
+  }
+
+  let data = canvas::copy_texture_to_vec(
+    &texture.instance,
+    texture.device_id,
+    texture.queue_id,
+    command_encoder,
+    texture.id,
+    &texture.size,
+  )?;
+
+  let color_type = match texture.format {
+    GPUTextureFormat::Rgba8unorm => ExtendedColorType::Rgba8,
+    GPUTextureFormat::Rgba8unormSrgb => ExtendedColorType::Rgba8,
+    GPUTextureFormat::Rgba8snorm => ExtendedColorType::Rgba8,
+    GPUTextureFormat::Rgba8uint => ExtendedColorType::Rgba8,
+    GPUTextureFormat::Rgba8sint => ExtendedColorType::Rgba8,
+    GPUTextureFormat::Bgra8unorm => ExtendedColorType::Bgra8,
+    GPUTextureFormat::Bgra8unormSrgb => ExtendedColorType::Bgra8,
+    _ => {
+      return Err(JsErrorBox::type_error(format!(
+        "Unsupported texture format '{}'",
+        texture.format.as_str()
+      )));
+    }
+  };
+
+  let mut out: Vec<u8> = vec![];
+
+  let img =
+    deno_runtime::deno_image::image::codecs::png::PngEncoder::new(&mut out);
+  img
+    .write_image(&data, texture.size.width, texture.size.height, color_type)
+    .map_err(|e| JsErrorBox::type_error(e.to_string()))?;
+
+  Ok(deno_runtime::deno_web::forgiving_base64_encode(&out))
+}
+
+#[op2]
+pub fn op_jupyter_get_buffer(
+  #[cppgc] buffer: &deno_runtime::deno_webgpu::buffer::GPUBuffer,
+) -> Result<Vec<u8>, deno_runtime::deno_webgpu::error::GPUError> {
+  use deno_runtime::deno_webgpu::*;
+  let index = buffer.instance.buffer_map_async(
+    buffer.id,
+    0,
+    None,
+    wgpu_core::resource::BufferMapOperation {
+      host: wgpu_core::device::HostMap::Read,
+      callback: None,
+    },
+  )?;
+
+  buffer
+    .instance
+    .device_poll(
+      buffer.device,
+      wgpu_types::PollType::Wait {
+        submission_index: Some(index),
+        timeout: None,
+      },
+    )
+    .unwrap();
+
+  let (slice_pointer, range_size) = buffer
+    .instance
+    .buffer_get_mapped_range(buffer.id, 0, None)?;
+
+  let data = {
+    // SAFETY: creating a slice from pointer and length provided by wgpu and
+    // then dropping it before unmapping
+    let slice = unsafe {
+      std::slice::from_raw_parts(slice_pointer.as_ptr(), range_size as usize)
+    };
+
+    slice.to_vec()
+  };
+
+  buffer.instance.buffer_unmap(buffer.id)?;
+
+  Ok(data)
+}
